@@ -46,27 +46,52 @@ SELECTIONS_FILE = "class_selections.json"
 ASKING_EVENT_NAME, ASKING_EVENT_DAY, ASKING_EVENT_TIME = range(3)
 
 # ===== GOOGLE CALENDAR SETUP =====
+def setup_credentials():
+    """Setup credentials.json from environment variable if needed"""
+    # Check if credentials.json exists
+    if not os.path.exists('credentials.json'):
+        # Try to get from environment variable
+        creds_env = os.environ.get('credentials_json')
+        if creds_env:
+            with open('credentials.json', 'w') as f:
+                f.write(creds_env)
+            logger.info("Created credentials.json from environment variable")
+        else:
+            logger.error("No credentials.json file and no credentials_json environment variable!")
+            return False
+    return True
+
 def get_calendar_service():
     """Authenticate and create Google Calendar service"""
-    creds = None
-    
-    if os.path.exists('token.json'):
-        from google.auth.transport.requests import Request
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            from google.auth.transport.requests import Request
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+    try:
+        # Setup credentials if needed
+        if not setup_credentials():
+            logger.error("Could not setup credentials")
+            return None
         
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+        creds = None
+        
+        if os.path.exists('token.json'):
+            from google.auth.transport.requests import Request
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                from google.auth.transport.requests import Request
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+        
+        service = build('calendar', 'v3', credentials=creds)
+        return service
     
-    service = build('calendar', 'v3', credentials=creds)
-    return service
+    except Exception as e:
+        logger.error(f"Error setting up calendar service: {e}")
+        return None
 
 def parse_time(time_str):
     """Parse time string like '4-6pm' to (start_hour, end_hour, end_minute)"""
@@ -484,6 +509,10 @@ def schedule_weekly_polls(app):
 # ===== MAIN FUNCTION =====
 def main():
     """Start the bot"""
+    # Initialize credentials
+    logger.info("Initializing credentials...")
+    setup_credentials()
+    
     # Create the Application
     application = Application.builder().token(BOT_TOKEN).build()
     
@@ -509,7 +538,7 @@ def main():
     schedule_weekly_polls(application)
     
     # Start the Bot
-    logger.info("Bot started!")
+    logger.info("Bot started successfully!")
     application.run_polling()
 
 if __name__ == '__main__':
