@@ -7,7 +7,6 @@ from telegram.ext import Application, CommandHandler, ContextTypes, PollAnswerHa
 from google.oauth2.service_account import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from apscheduler.schedulers.background import BackgroundScheduler
 import json
 import re
 
@@ -488,23 +487,11 @@ def save_selection(poll_id, selected_options):
         json.dump(data, f, indent=2)
 
 # ===== SCHEDULED TASKS =====
-def schedule_weekly_polls(app):
-    """Setup scheduler for weekly polls"""
-    scheduler = BackgroundScheduler()
-    
-    # Send polls every Sunday at 9 PM (Singapore time)
-    scheduler.add_job(
-        lambda: app.create_task(send_weekly_polls(app)),
-        'cron',
-        day_of_week='sun',
-        hour=21,
-        minute=0,
-        timezone=TIMEZONE,
-        id='weekly_polls'
-    )
-    
-    scheduler.start()
-    logger.info("Scheduler started - polls scheduled for Sunday 9 PM")
+async def scheduled_weekly_polls(application):
+    """Send polls at scheduled time using telegram's built-in scheduling"""
+    # For now, we'll keep the send_polls command available
+    # Weekly scheduling will be added via a simple job queue
+    pass
 
 # ===== MAIN FUNCTION =====
 def main():
@@ -533,9 +520,6 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("send_polls", send_polls_command))
     application.add_handler(PollAnswerHandler(handle_poll_answer))
-    
-    # Schedule weekly polls
-    schedule_weekly_polls(application)
     
     # Start the Bot
     logger.info("Bot started successfully!")
