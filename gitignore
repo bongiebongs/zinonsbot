@@ -1,0 +1,25 @@
+# Environment
+venv/
+env/
+*.pyc
+__pycache__/
+*.egg-info/
+
+# Sensitive files
+credentials.json
+token.json
+chat_id.txt
+class_selections.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
